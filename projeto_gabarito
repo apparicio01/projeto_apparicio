@@ -1,0 +1,128 @@
+#Gabriel Henrique Ferreira Apparicio - 825159309
+Guilherme Castro Campos - 825141377
+Nicolas Vinicius Marches Silva - 825153338
+Gregorio Freitas dos Santos -825164405
+Brenno Bispo do Nascimento - 825165062
+Caue Santos Silva -825153554
+Joao Pedro Carmo de Souza - 825153159
+Victor  Dias Vasconcelos - 825159415#
+
+import java.sql.*;
+import java.util.Scanner;
+
+public class GabaritoMatematica {
+
+    private static final String URL = "jdbc:sqlite:gabarito.db";
+
+    public static void main(String[] args) {
+        criarTabela();
+        inserirGabarito();
+
+        String[] respostasAluno = coletarRespostasAluno();
+        String[] gabarito = obterGabarito();
+
+        int acertos = corrigirProva(respostasAluno, gabarito);
+        System.out.println("\nVocê acertou " + acertos + " de 15 questões.");
+        System.out.printf("Sua nota final: %.2f\n", (acertos / 15.0) * 10);
+    }
+
+    // 1. Criação da Tabela
+    private static void criarTabela() {
+        String sql = "CREATE TABLE IF NOT EXISTS gabarito ("
+                   + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                   + "numero_questao INTEGER UNIQUE NOT NULL, "
+                   + "resposta_correta TEXT NOT NULL)";
+
+        try (Connection conn = DriverManager.getConnection(URL);
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            System.out.println("Erro ao criar tabela: " + e.getMessage());
+        }
+    }
+
+    // 2. Inserção do Gabarito (se não houver dados)
+    private static void inserirGabarito() {
+        String sqlCheck = "SELECT COUNT(*) FROM gabarito";
+        String sqlInsert = "INSERT OR IGNORE INTO gabarito (numero_questao, resposta_correta) VALUES (?, ?)";
+
+        String[] respostas = {
+            "B", "C", "D", "A", "B",
+            "C", "D", "A", "B", "C",
+            "D", "A", "B", "C", "D"
+        };
+
+        try (Connection conn = DriverManager.getConnection(URL);
+             Statement stmt = conn.createStatement();
+             PreparedStatement pstmt = conn.prepareStatement(sqlInsert)) {
+
+            ResultSet rs = stmt.executeQuery(sqlCheck);
+            if (rs.next() && rs.getInt(1) == 0) {
+                for (int i = 0; i < 15; i++) {
+                    pstmt.setInt(1, i + 1);
+                    pstmt.setString(2, respostas[i]);
+                    pstmt.executeUpdate();
+                }
+                System.out.println("Gabarito inserido com sucesso.");
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Erro ao inserir gabarito: " + e.getMessage());
+        }
+    }
+
+    // 3. Coleta respostas do aluno via teclado
+    private static String[] coletarRespostasAluno() {
+        Scanner scanner = new Scanner(System.in);
+        String[] respostas = new String[15];
+
+        System.out.println("Digite suas respostas para as 15 questões (A, B, C ou D):");
+
+        for (int i = 0; i < 15; i++) {
+            String resposta;
+            while (true) {
+                System.out.print("Questão " + (i + 1) + ": ");
+                resposta = scanner.nextLine().trim().toUpperCase();
+                if (resposta.matches("[ABCD]")) break;
+                System.out.println("Resposta inválida. Digite apenas A, B, C ou D.");
+            }
+            respostas[i] = resposta;
+        }
+        return respostas;
+    }
+
+    // 4. Recupera o gabarito do banco
+    private static String[] obterGabarito() {
+        String[] gabarito = new String[15];
+        String sql = "SELECT numero_questao, resposta_correta FROM gabarito ORDER BY numero_questao";
+
+        try (Connection conn = DriverManager.getConnection(URL);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                int num = rs.getInt("numero_questao");
+                gabarito[num - 1] = rs.getString("resposta_correta");
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Erro ao recuperar gabarito: " + e.getMessage());
+        }
+        return gabarito;
+    }
+
+    // 5. Corrige a prova
+    private static int corrigirProva(String[] aluno, String[] gabarito) {
+        int acertos = 0;
+        System.out.println("\nCorreção:");
+        for (int i = 0; i < 15; i++) {
+            boolean certo = aluno[i].equalsIgnoreCase(gabarito[i]);
+            System.out.println("Questão " + (i + 1) + ": Sua resposta = " + aluno[i] + 
+                               " | Correta = " + gabarito[i] + 
+                               " -> " + (certo ? "✔️" : "❌"));
+            if (certo) acertos++;
+        }
+        return acertos;
+    }
+}
+
