@@ -1,0 +1,69 @@
+# projeto_apparicio
+
+class Livro:
+    def __init__(self, titulo, autor, isbn, ano_publicacao):
+        self.titulo = titulo
+        self.autor = autor
+        self.isbn = isbn
+        self.ano_publicacao = ano_publicacao
+        self.disponivel = True
+
+    def emprestar(self):
+        if self.disponivel:
+            self.disponivel = False
+            return True
+        return False
+
+    def devolver(self):
+        self.disponivel = True
+
+    def esta_disponivel(self):
+        return self.disponivel
+
+
+class Usuario:
+    def __init__(self, id_usuario, nome, email, telefone):
+        self.id_usuario = id_usuario
+        self.nome = nome
+        self.email = email
+        self.telefone = telefone
+        self.emprestimos = []
+
+    def realizar_emprestimo(self, livro):
+        if livro.emprestar():
+            emprestimo = Emprestimo(livro, self)
+            self.emprestimos.append(emprestimo)
+            return emprestimo
+        else:
+            print("Livro indisponível.")
+            return None
+
+    def devolver_livro(self, livro):
+        for emp in self.emprestimos:
+            if emp.livro == livro and not emp.devolvido:
+                emp.devolver()
+                livro.devolver()
+                return
+        print("Este livro não está emprestado por este usuário.")
+
+
+class Emprestimo:
+    def __init__(self, livro, usuario):
+        self.id = id(self)
+        self.livro = livro
+        self.usuario = usuario
+        self.data_emprestimo = date.today()
+        self.data_devolucao = self.data_emprestimo + timedelta(days=7)
+        self.devolvido = False
+
+    def verificar_atraso(self):
+        return date.today() > self.data_devolucao
+
+    def calcular_multa(self):
+        if self.verificar_atraso():
+            dias_atraso = (date.today() - self.data_devolucao).days
+            return dias_atraso * 1.5  # Ex: R$ 1,50 por dia de atraso
+        return 0
+
+    def devolver(self):
+        self.devolvido = True
